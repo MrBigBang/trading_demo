@@ -9,11 +9,13 @@ from DBUtils.PooledDB import PooledDB
 from utils import Config, JSONEncoder
 from log import logger
 import decimal
+from threading import Lock
 
 
 
 class DBManager(object):
 
+    __lock = Lock()
     __pool = None
     """docstring for DBManager"""
     def __init__(self, host='localhost', user=None, pwd="", db=None, port=3306,  ** kwargs):
@@ -25,20 +27,24 @@ class DBManager(object):
         self.db_schema = db
 
     def __get_conn(self):
-        if DBManager.__pool is None:
-            __pool = PooledDB(creator=pymysql,
-                              mincached=1,
-                              maxcached=20,
-                              host=self.db_host,
-                              port=self.db_port,
-                              user=self.db_user,
-                              passwd=self.db_pwd,
-                              db=self.db_schema,
-                              use_unicode=True,
-                              charset="utf8",
-                              cursorclass=DictCursor,
-                              autocommit=False)
-        return __pool.connection()
+        self.__init_pool()
+        return DBManager.__pool.connection()
+
+    def __init_pool(self):
+        with self.__lock:
+            if DBManager.__pool is None:
+               DBManager.__pool = PooledDB(creator=pymysql,
+                mincached=1,
+                maxcached=20,
+                host=self.db_host,
+                port=self.db_port,
+                user=self.db_user,
+                passwd=self.db_pwd,
+                db=self.db_schema,
+                use_unicode=True,
+                charset="utf8",
+                cursorclass=DictCursor,
+                autocommit=False)
 
     def __execute(self, sql, param=None):
         db_conn = self.__get_conn()

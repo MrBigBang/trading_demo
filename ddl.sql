@@ -1,5 +1,5 @@
 -- ----------------------------------------
--- Database trading_db
+-- Database tradingdemodb
 -- ----------------------------------------
 DROP DATABASE IF EXISTS `tradingdemodb`;
 CREATE DATABASE `tradingdemodb`;

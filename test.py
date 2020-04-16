@@ -7,6 +7,8 @@ import decimal
 from utils import Config
 from repository import DBManager, add_trading_record
 from cache import RedisManager
+from threading import Lock, Thread, Condition
+import time
 
 
 def test_dbmng():
@@ -37,8 +39,67 @@ def test_redismng():
     #print(redis_mng.hexists("account_info_cache", "1"))
     print(redis_mng.hget("account_info_cache", "1"))
 
+value = 0
+lock = Lock()
+
+def test_lock():
+    threads = []
+    for i in range(100):
+        t = Thread(target=get_lock)
+        t.start()
+        threads.append(t)
+
+    for thread in threads:
+        thread.join()
+
+    print(value)
+
+def get_lock():
+    global value
+    with lock:
+        new = value + 1
+        time.sleep(.01)
+        value = new
+
+class TestLock(object):
+    __lock = Lock()
+    __pool = None
+    """docstring for TestLock"""
+    def __init__(self):
+        super(TestLock, self).__init__()
+
+    def init_pool(self):
+        with TestLock.__lock:
+            if TestLock.__pool is None:
+                print("enter init __pool")
+                TestLock.__pool = '123'
+    def get_pool(self):
+        return self.__pool
+
+def test_lock2():
+    cond  = Condition()
+    testlock = TestLock()
+    def invork_init_pool():
+        cond.acquire()
+        try:
+            cond.wait()
+            testlock.init_pool()
+        finally:
+            cond.release()
+    threads = []
+    for i in range(100):
+        t = Thread(target=invork_init_pool)
+        t.start()
+        threads.append(t)
+
+    with cond:
+        cond.notifyAll()
+
+    for thread in threads:
+        thread.join()
+
+    print(testlock.get_pool())
+
 
 if __name__ == '__main__':
-    a = decimal.Decimal('3.14')
-    b = decimal.Decimal.from_float(0.5)
-    print(a+b)
+    test_lock2()
